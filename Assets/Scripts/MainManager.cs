@@ -1,97 +1,70 @@
-using System.Collections;
-using System.Collections.Generic;
+using System.IO;
 using UnityEngine;
-using UnityEngine.SceneManagement;
-using UnityEngine.UI;
-using UnityEngine.InputSystem; // MIGRATED: New Input System namespace
 
 public class MainManager : MonoBehaviour
 {
-    public Brick BrickPrefab;
-    public int LineCount = 6;
-    public Rigidbody Ball;
+    public static MainManager Instance { get; private set; }
 
-    public Text ScoreText;
-    public GameObject GameOverText;
+    // Public properties for high score and player name
+    public int HighScore => m_HighScore;
+    public string HighScorerName => m_HighScorerName;
 
-    private bool m_Started = false;
-    private int m_Points;
+    public string PlayerName = "Player";
+    
+    private int m_HighScore = 0;
+    private string m_HighScorerName = "";
 
-    private bool m_GameOver = false;
-
-    // MIGRATED: InputAction replaces Input.GetKeyDown(KeyCode.Space)
-    private InputAction m_LaunchAction;
-
-    // MIGRATED: bind the Space key as a button action
-    void Awake()
+    private void Awake()
     {
-        m_LaunchAction = new InputAction("Launch", InputActionType.Button, "<Keyboard>/space");
-    }
-
-    // MIGRATED: enable the action while the component is active
-    void OnEnable()
-    {
-        m_LaunchAction.Enable();
-    }
-
-    // MIGRATED: disable the action when the component is inactive
-    void OnDisable()
-    {
-        m_LaunchAction.Disable();
-    }
-
-    // Start is called before the first frame update
-    void Start()
-    {
-        const float step = 0.6f;
-        int perLine = Mathf.FloorToInt(4.0f / step);
-
-        int[] pointCountArray = new [] {1,1,2,2,5,5};
-        for (int i = 0; i < LineCount; ++i)
+        if (Instance != null)
         {
-            for (int x = 0; x < perLine; ++x)
-            {
-                Vector3 position = new Vector3(-1.5f + step * x, 2.5f + i * 0.3f, 0);
-                var brick = Instantiate(BrickPrefab, position, Quaternion.identity);
-                brick.PointValue = pointCountArray[i];
-                brick.onDestroyed.AddListener(AddPoint);
-            }
+            Destroy(gameObject);
+            return;
+        }
+
+        Instance = this;
+        DontDestroyOnLoad(gameObject);
+        
+        LoadHighScoreData();
+    }
+
+    public void CheckAndUpdateHighScore(int currentScore)
+    {
+       if (currentScore > m_HighScore)
+        {
+            m_HighScore = currentScore;
+            m_HighScorerName = PlayerName;
+            SaveHighScoreData();
         }
     }
 
-    private void Update()
+    [System.Serializable]
+    class SaveData
     {
-        if (!m_Started)
-        {
-            if (m_LaunchAction.WasPressedThisFrame()) // MIGRATED: was Input.GetKeyDown(KeyCode.Space)
-            {
-                m_Started = true;
-                float randomDirection = Random.Range(-1.0f, 1.0f);
-                Vector3 forceDir = new Vector3(randomDirection, 1, 0);
-                forceDir.Normalize();
-
-                Ball.transform.SetParent(null);
-                Ball.AddForce(forceDir * 2.0f, ForceMode.VelocityChange);
-            }
-        }
-        else if (m_GameOver)
-        {
-            if (m_LaunchAction.WasPressedThisFrame()) // MIGRATED: was Input.GetKeyDown(KeyCode.Space)
-            {
-                SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
-            }
-        }
+        public int highscore;
+        public string playerName;
     }
 
-    void AddPoint(int point)
+    public void SaveHighScoreData()
     {
-        m_Points += point;
-        ScoreText.text = $"Score : {m_Points}";
+        SaveData data = new SaveData();
+        data.highscore = m_HighScore;
+        data.playerName = m_HighScorerName;
+
+        string json = JsonUtility.ToJson(data);
+        File.WriteAllText(Application.persistentDataPath + "/savefile.json", json);
     }
 
-    public void GameOver()
+    public void LoadHighScoreData()
     {
-        m_GameOver = true;
-        GameOverText.SetActive(true);
+        string path = Application.persistentDataPath + "/savefile.json";
+        if (File.Exists(path))
+        {
+            string json = File.ReadAllText(path);
+            SaveData data = JsonUtility.FromJson<SaveData>(json);
+
+            m_HighScore = data.highscore;
+            m_HighScorerName = data.playerName;
+        }
     }
 }
