@@ -3,6 +3,8 @@ using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using UnityEngine.InputSystem;
 
+//GameManager
+
 public class GameManager : MonoBehaviour
 {
     [Header("Game References")]
