@@ -126,7 +126,7 @@ public class GameManager : MonoBehaviour
         // }
         UpdateHighScoreUI();
     }
-
+ //update high scores
     void UpdateHighScoreUI()
     {
         if (HighScoreText != null && MainManager.Instance != null)
