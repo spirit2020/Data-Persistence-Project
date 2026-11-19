@@ -31,6 +31,19 @@ public class MenuUIHandler : MonoBehaviour
         SceneManager.LoadScene(1); // Load Game Scene
     }
 
+    public void GoToSettings(){
+    
+        SceneManager.LoadScene(3); // Load Game Scene
+
+    }
+
+     // Hook this method up to your UI Button's OnClick event in the Inspector
+    public void OpenHighScoreScene2()
+    {
+        // Change '2' to match the actual Build Index of your High Score Scene
+        SceneManager.LoadScene(2); 
+    }
+
     public void Exit()
     {
         #if UNITY_EDITOR

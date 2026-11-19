@@ -14,6 +14,7 @@ public class GameManager : MonoBehaviour
     public Text ScoreText;
     public Text HighScoreText;
     public GameObject GameOverText;
+    public GameObject HighScoresButton; // Drag your View High Scores button object here
 
     private bool m_Started = false;
     private int m_Points = 0;
@@ -23,38 +24,63 @@ public class GameManager : MonoBehaviour
     void Awake()
     {
         m_LaunchAction = new InputAction("Launch", InputActionType.Button, "<Keyboard>/space");
-         
     }
 
     void OnEnable() => m_LaunchAction.Enable();
     void OnDisable() => m_LaunchAction.Disable();
 
-    void Start()
+  void Start()
     {
         Debug.Log("GameManager Start() running! Resetting UI.");
 
-        // Explicitly reset game states on start/restart
         m_Started = false;
         m_GameOver = false;
         m_Points = 0;
 
-        // 1. Force hide Game Over text on start/restart
-        if (GameOverText != null) 
-        {
-            GameOverText.SetActive(false);
-        }
-        else
-        {
-            Debug.LogWarning("GameOverText reference is missing in the Inspector!");
-        }
-       
+        if (GameOverText != null) GameOverText.SetActive(false);
+        if (HighScoresButton != null) HighScoresButton.SetActive(false);
 
         UpdateHighScoreUI();
        
-        // Spawn Bricks
+        // Apply Line Count from MainManager Settings
+        if (MainManager.Instance != null)
+        {
+            LineCount = MainManager.Instance.Settings.lineCount;
+        }
+
         SpawnBricks();
 
         if (ScoreText != null) ScoreText.text = "Score : 0";
+    }
+
+    void Update()
+    {
+        if (!m_Started)
+        {
+            if (m_LaunchAction.WasPressedThisFrame())
+            {
+                m_Started = true;
+                float randomDirection = Random.Range(-1.0f, 1.0f);
+                Vector3 forceDir = new Vector3(randomDirection, 1, 0).normalized;
+
+                // Apply Ball Speed from MainManager Settings
+                float speed = (MainManager.Instance != null) ? MainManager.Instance.Settings.ballSpeed : 2.0f;
+
+                if (Ball != null)
+                {
+                    Ball.transform.SetParent(null);
+                    Ball.AddForce(forceDir * speed, ForceMode.VelocityChange);
+                }
+            }
+        }
+        else if (m_GameOver)
+        {
+            if (m_LaunchAction.WasPressedThisFrame())
+            {
+                SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+            }
+            UpdateHighScoreUI();
+        }
     }
 
     void SpawnBricks()
@@ -71,41 +97,17 @@ public class GameManager : MonoBehaviour
             {
                 Vector3 position = new Vector3(-1.5f + step * x, 2.5f + i * 0.3f, 0);
                 var brick = Instantiate(BrickPrefab, position, Quaternion.identity);
-                brick.PointValue = pointCountArray[i];
+               // Using modulo (%) ensures that if LineCount exceeds the array size, 
+                // it safely wraps around and reuses the point values without crashing.
+                int pointIndex = i % pointCountArray.Length;
+                brick.PointValue = pointCountArray[pointIndex];
+                
                 brick.onDestroyed.AddListener(AddPoint);
             }
         }
     }
 
-    void Update()
-    {
-        if (!m_Started)
-        {
-            if (m_LaunchAction.WasPressedThisFrame())
-            {
-                m_Started = true;
-                float randomDirection = Random.Range(-1.0f, 1.0f);
-                Vector3 forceDir = new Vector3(randomDirection, 1, 0).normalized;
-
-                if (Ball != null)
-                {
-                    Ball.transform.SetParent(null);
-                    Ball.AddForce(forceDir * 2.0f, ForceMode.VelocityChange);
-                }
-            }
-        }
-        else if (m_GameOver)
-        {
-            if (m_LaunchAction.WasPressedThisFrame())
-            {
-                Debug.Log("Space pressed on Game Over. Reloading scene...");
-                // Reload game scene to restart
-                
-                SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
-            }
-             UpdateHighScoreUI();
-        }
-    }
+   
 
     void AddPoint(int point)
     {
@@ -115,12 +117,12 @@ public class GameManager : MonoBehaviour
         m_Points += point;
         if (ScoreText != null) ScoreText.text = $"Score : {m_Points}";
 
-        // Update High Score via MainManager
-        if (MainManager.Instance != null)
-        {
-            MainManager.Instance.CheckAndUpdateHighScore(m_Points);
-        }
-       
+        // Update High Score via MainManager using AddNewScore
+      //  if (MainManager.Instance != null)
+       // {
+         //   MainManager.Instance.AddNewScore(MainManager.Instance.PlayerName, m_Points);
+        // }
+        UpdateHighScoreUI();
     }
 
     void UpdateHighScoreUI()
@@ -133,14 +135,29 @@ public class GameManager : MonoBehaviour
 
     public void GameOver()
     {
-        if (m_GameOver) return; // Prevent multiple triggers
+        if (m_GameOver) return; 
 
         m_GameOver = true;
+        
         if (GameOverText != null) GameOverText.SetActive(true);
+
+        // Show the View High Scores button when game is over
+        if (HighScoresButton != null)
+        {
+            HighScoresButton.SetActive(true);
+        }
 
         if (MainManager.Instance != null)
         {
-            MainManager.Instance.CheckAndUpdateHighScore(m_Points);
+            // Submit final score to the leaderboard list
+            MainManager.Instance.AddNewScore(MainManager.Instance.PlayerName, m_Points);
         }
+    }
+
+    // Hook this method up to your UI Button's OnClick event in the Inspector
+    public void BackToMeno0()
+    {
+        // Change '2' to match the actual Build Index of your High Score Scene
+        SceneManager.LoadScene(0); 
     }
 }
