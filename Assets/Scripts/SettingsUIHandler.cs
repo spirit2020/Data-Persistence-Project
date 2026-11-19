@@ -68,6 +68,7 @@ public class SettingsUIHandler : MonoBehaviour
         MainManager.Instance.SaveGameData();
     }
 
+//functions for slider
     void UpdateLineCountText(int value)
     {
         if (LineCountText != null)
