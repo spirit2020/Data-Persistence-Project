@@ -12,7 +12,7 @@ public class SettingsUIHandler : MonoBehaviour
     public Slider BallSpeedSlider;         // Slider for ball speed (e.g., 1.0 to 5.0)
     public TextMeshProUGUI BallSpeedText;  // Text displaying current ball speed value
     
-    public Toggle SoundToggle;             // Toggle for sound
+    public Toggle SoundToggle;             // Toggle for sound ..
 
     void Start()
     {
